@@ -10,6 +10,11 @@
 #include <zephyr/device.h>
 #include <zephyr/drivers/lora.h>
 
+typedef struct {
+    uint16_t port;
+    uint8_t packet[253];
+} LORA_PACKET_T;
+
 int init_sx1276(const struct device *const dev);
 
 int lora_configure(const struct device *const dev, bool transmit);

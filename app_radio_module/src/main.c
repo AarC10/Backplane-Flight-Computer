@@ -33,6 +33,12 @@ static K_THREAD_STACK_DEFINE(receive_power_mod_stack, 1024);
 static struct k_thread receive_sensor_mod_thread;
 static struct k_thread receive_power_mod_thread;
 
+static void recv_task(void*, void*, void*) {
+    printk("Receiver started\n");
+    while (1) {
+        int ret = lora_recv_async(lora_dev, lora_debug_recv_cb);
+    }
+}
 
 static void init() {
     k_queue_init(&lora_tx_queue);
@@ -48,32 +54,32 @@ static void init() {
     if (!init_eth_iface()) {
         init_net_stack();
     
-        k_thread_create(&receive_sensor_mod_thread, receive_sensor_mod_stack, 1024, receive_udp_task, 11000, NULL, NULL, K_PRIO_PREEMPT(10), 0, K_NO_WAIT);
-        k_thread_start(&receive_sensor_mod_thread); 
+        // k_thread_create(&receive_sensor_mod_thread, receive_sensor_mod_stack, 1024, receive_udp_task, INT_TO_POINTER(11000), NULL, NULL, K_PRIO_PREEMPT(10), 0, K_NO_WAIT);
+        // k_thread_start(&receive_sensor_mod_thread); 
+        // 
+        // k_thread_create(&receive_power_mod_thread, receive_power_mod_stack, 1024, receive_udp_task, INT_TO_POINTER(10000), NULL, NULL, K_PRIO_PREEMPT(10), 0, K_NO_WAIT);
+        // k_thread_start(&receive_power_mod_thread);
         
-        k_thread_create(&receive_power_mod_thread, receive_power_mod_stack, 1024, receive_udp_task, 10000, NULL, NULL, K_PRIO_PREEMPT(10), 0, K_NO_WAIT);
-        k_thread_start(&receive_power_mod_thread); 
+        k_thread_create(&recv_task, receive_power_mod_stack, 1024, receive_udp_task, INT_TO_POINTER(10000), NULL, NULL, K_PRIO_PREEMPT(10), 0, K_NO_WAIT);
+        k_thread_start(&recv_task);
+    
     }
 }
 
 
-int main() {
-    const struct device *uart_dev = DEVICE_DT_GET(DT_ALIAS(dbguart));
-    
-    uint8_t tx_buff[255] = {0};
-    uint8_t tx_buff_len = 0;
-
-    printk("Starting radio module!\n");
-    init();
-    
-    return 0;
-}
 // int main() {
-//     init();
-//     printk("Receiver started\n");
-//     while (1) {
-//         int ret = lora_recv_async(lora_dev, lora_debug_recv_cb);
-//     }
+//     const struct device *uart_dev = DEVICE_DT_GET(DT_ALIAS(dbguart));
+//     
+//     uint8_t tx_buff[255] = {0};
+//     uint8_t tx_buff_len = 0;
 //
+//     printk("Starting radio module!\n");
+//     init();
+//     
 //     return 0;
 // }
+int main() {
+    init();
+
+    return 0;
+}

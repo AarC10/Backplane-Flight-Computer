@@ -28,6 +28,10 @@ LOG_MODULE_REGISTER(main, CONFIG_APP_LOG_LEVEL);
 K_QUEUE_DEFINE(lora_tx_queue);
 K_QUEUE_DEFINE(net_tx_queue);
 
+static K_THREAD_STACK_DEFINE(receive_udp_stack, 1024);
+static struct k_thread receive_udp_thread;
+
+
 static void init() {
     k_queue_init(&lora_tx_queue);
     k_queue_init(&net_tx_queue);
@@ -41,6 +45,9 @@ static void init() {
 
     if (!init_eth_iface()) {
         init_net_stack();
+    
+        k_thread_create(&receive_udp_thread, receive_udp_stack, 1024, receive_udp_task, NULL, NULL, NULL, K_PRIO_PREEMPT(10), 0, K_NO_WAIT);
+        k_thread_start(&receive_udp_thread); 
     }
 }
 

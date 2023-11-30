@@ -5,7 +5,7 @@
  */
 
 #include "net_utils.h"
-
+#include "lora_utils.h"
 #include <zephyr/kernel.h>
 #include <zephyr/net/socket.h>
 #include <zephyr/net/ethernet.h>
@@ -16,7 +16,7 @@
 LOG_MODULE_REGISTER(net_utils, CONFIG_APP_LOG_LEVEL);
 
 static struct net_if *net_interface;
-
+#define MAX_UDP_PACKET_SIZE 255
 int init_eth_iface(void) {
     const struct device *const wiznet = DEVICE_DT_GET_ONE(wiznet_w5500);
     if (!device_is_ready(wiznet)) {
@@ -29,7 +29,7 @@ int init_eth_iface(void) {
 }
 
 int init_net_stack(void) {
-    static const char ip_addr[] = "10.10.10.69";
+    static const char ip_addr[] = "10.10.10.12";
     int ret;
 
     net_interface = net_if_get_default();
@@ -87,4 +87,48 @@ int send_udp_broadcast(const uint8_t *data, size_t data_len, uint16_t port) {
 
     close(sock);
     return 0;
+}
+
+void receive_udp_task(void *port_arg, void *, void *) {
+    int sock;
+    int ret;
+    int port = POINTER_TO_INT(port_arg);
+
+    sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (sock < 0) {
+        LOG_INF("Failed to create socket (%d)\n", sock);
+        return;
+    }
+
+    struct sockaddr_in src_addr;
+    memset(&src_addr, 0, sizeof(src_addr));
+    src_addr.sin_family = AF_INET;
+    src_addr.sin_port = htons(port);
+    src_addr.sin_addr.s_addr = INADDR_ANY;
+
+    ret = bind(sock, (struct sockaddr *) &src_addr, sizeof(src_addr));
+    if (ret < 0) {
+        LOG_INF("Failed to bind socket (%d)\n", ret);
+        close(sock);
+        return;
+    }
+
+    uint8_t buffer[MAX_UDP_PACKET_SIZE];
+    struct sockaddr_in from_addr;
+    socklen_t from_addr_len = sizeof(from_addr);
+
+    while (1) {
+        memset(buffer, 0, MAX_UDP_PACKET_SIZE);
+        ret = recvfrom(sock, buffer, MAX_UDP_PACKET_SIZE, 0, (struct sockaddr *)&from_addr, &from_addr_len);
+        if (ret < 0) {
+            LOG_INF("Failed to receive UDP packet (%d)\n", ret);
+            continue;
+        }
+
+        char from_ip[NET_IPV4_ADDR_LEN];
+        net_addr_ntop(AF_INET, &from_addr.sin_addr, from_ip, sizeof(from_ip));
+        LOG_INF("Received UDP packet from %s:%d\n", from_ip, ntohs(from_addr.sin_port));
+    }
+
+    close(sock);
 }

@@ -16,4 +16,5 @@ int init_net_stack(void);
 
 int send_udp_broadcast(const uint8_t *data, size_t data_len, uint16_t port);
 
+void receive_udp_task(void *port_arg, void *, void *);
 #endif

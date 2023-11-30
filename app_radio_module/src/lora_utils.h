@@ -10,7 +10,7 @@
 #include <zephyr/device.h>
 #include <zephyr/drivers/lora.h>
 
-typedef struct {
+typedef struct __attribute__((__packed__)) {
     uint16_t port;
     uint8_t packet[253];
 } LORA_PACKET_T;

@@ -60,10 +60,10 @@ static void init() {
         // k_thread_create(&receive_power_mod_thread, receive_power_mod_stack, 1024, receive_udp_task, INT_TO_POINTER(10000), NULL, NULL, K_PRIO_PREEMPT(10), 0, K_NO_WAIT);
         // k_thread_start(&receive_power_mod_thread);
         
-        k_thread_create(&recv_task, receive_power_mod_stack, 1024, receive_udp_task, INT_TO_POINTER(10000), NULL, NULL, K_PRIO_PREEMPT(10), 0, K_NO_WAIT);
-        k_thread_start(&recv_task);
     
     }
+        k_thread_create(&receive_power_mod_thread, receive_power_mod_stack, 1024, recv_task, NULL, NULL, NULL, K_PRIO_PREEMPT(10), 0, K_NO_WAIT);
+        k_thread_start(&receive_power_mod_thread);
 }
 
 

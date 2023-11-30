@@ -52,6 +52,7 @@ void lora_debug_recv_cb(const struct device *const dev, uint8_t *data, uint16_t 
         printk("\n-----------------------------------\n");
 
         uint16_t port = (data[0] << 8 | data[1]);
+        printk("Sending to port %d", port);
         send_udp_broadcast(data + 2, size - 2, port);
 
         memset(data, 0, size);

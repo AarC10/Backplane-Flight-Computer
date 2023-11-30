@@ -16,6 +16,7 @@
 LOG_MODULE_REGISTER(net_utils, CONFIG_APP_LOG_LEVEL);
 
 static struct net_if *net_interface;
+extern const struct device *const lora_dev;
 #define MAX_UDP_PACKET_SIZE 255
 int init_eth_iface(void) {
     const struct device *const wiznet = DEVICE_DT_GET_ONE(wiznet_w5500);
@@ -119,7 +120,7 @@ void receive_udp_task(void *port_arg, void *, void *) {
 
     while (1) {
         memset(buffer, 0, MAX_UDP_PACKET_SIZE);
-        ret = recvfrom(sock, buffer, MAX_UDP_PACKET_SIZE, 0, (struct sockaddr *)&from_addr, &from_addr_len);
+        ret = recvfrom(sock, buffer, MAX_UDP_PACKET_SIZE, 0, (struct sockaddr *) &from_addr, &from_addr_len);
         if (ret < 0) {
             LOG_INF("Failed to receive UDP packet (%d)\n", ret);
             continue;
@@ -128,6 +129,13 @@ void receive_udp_task(void *port_arg, void *, void *) {
         char from_ip[NET_IPV4_ADDR_LEN];
         net_addr_ntop(AF_INET, &from_addr.sin_addr, from_ip, sizeof(from_ip));
         LOG_INF("Received UDP packet from %s:%d\n", from_ip, ntohs(from_addr.sin_port));
+
+        LORA_PACKET_T lora_packet = {0};
+        lora_packet.port = port;
+        memcpy(lora_packet.packet, buffer, ret);
+        
+        lora_tx(lora_dev, (uint8_t *) &lora_packet, 2 + ret);
+        
     }
 
     close(sock);

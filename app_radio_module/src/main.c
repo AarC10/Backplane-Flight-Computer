@@ -54,32 +54,27 @@ static void init() {
     if (!init_eth_iface()) {
         init_net_stack();
     
-        // k_thread_create(&receive_sensor_mod_thread, receive_sensor_mod_stack, 1024, receive_udp_task, INT_TO_POINTER(11000), NULL, NULL, K_PRIO_PREEMPT(10), 0, K_NO_WAIT);
-        // k_thread_start(&receive_sensor_mod_thread); 
-        // 
-        // k_thread_create(&receive_power_mod_thread, receive_power_mod_stack, 1024, receive_udp_task, INT_TO_POINTER(10000), NULL, NULL, K_PRIO_PREEMPT(10), 0, K_NO_WAIT);
-        // k_thread_start(&receive_power_mod_thread);
+        k_thread_create(&receive_sensor_mod_thread, receive_sensor_mod_stack, 1024, receive_udp_task, INT_TO_POINTER(11000), NULL, NULL, K_PRIO_PREEMPT(10), 0, K_NO_WAIT);
+        k_thread_start(&receive_sensor_mod_thread); 
+
+        k_thread_create(&receive_power_mod_thread, receive_power_mod_stack, 1024, receive_udp_task, INT_TO_POINTER(10000), NULL, NULL, K_PRIO_PREEMPT(10), 0, K_NO_WAIT);
+        k_thread_start(&receive_power_mod_thread);
         
     
     }
-        k_thread_create(&receive_power_mod_thread, receive_power_mod_stack, 1024, recv_task, NULL, NULL, NULL, K_PRIO_PREEMPT(10), 0, K_NO_WAIT);
-        k_thread_start(&receive_power_mod_thread);
+        // k_thread_create(&receive_power_mod_thread, receive_power_mod_stack, 1024, recv_task, NULL, NULL, NULL, K_PRIO_PREEMPT(10), 0, K_NO_WAIT);
+        // k_thread_start(&receive_power_mod_thread);
 }
 
 
-// int main() {
-//     const struct device *uart_dev = DEVICE_DT_GET(DT_ALIAS(dbguart));
-//     
-//     uint8_t tx_buff[255] = {0};
-//     uint8_t tx_buff_len = 0;
-//
-//     printk("Starting radio module!\n");
-//     init();
-//     
-//     return 0;
-// }
 int main() {
+    printk("Starting radio module!\n");
     init();
-
+    
     return 0;
 }
+// int main() {
+//     init();
+//
+//     return 0;
+// }

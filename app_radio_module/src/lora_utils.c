@@ -60,6 +60,7 @@ void lora_debug_recv_cb(const struct device *const dev, uint8_t *data, uint16_t 
 }
 
 int lora_tx(const struct device *const dev, uint8_t *buff, size_t len) {
+    printk("Sending packet\n");
     lora_configure(dev, true);
     int ret = lora_send(dev, buff, len);
     lora_configure(dev, false);

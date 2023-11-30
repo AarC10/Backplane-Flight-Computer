@@ -94,7 +94,7 @@ void receive_udp_task(void *port_arg, void *, void *) {
     int sock;
     int ret;
     int port = POINTER_TO_INT(port_arg);
-
+    printk("Listening on port %d\n", port);
     sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (sock < 0) {
         LOG_INF("Failed to create socket (%d)\n", sock);
@@ -109,7 +109,7 @@ void receive_udp_task(void *port_arg, void *, void *) {
 
     ret = bind(sock, (struct sockaddr *) &src_addr, sizeof(src_addr));
     if (ret < 0) {
-        LOG_INF("Failed to bind socket (%d)\n", ret);
+        printk("Failed to bind socket (%d)\n", ret);
         close(sock);
         return;
     }
@@ -117,18 +117,18 @@ void receive_udp_task(void *port_arg, void *, void *) {
     uint8_t buffer[MAX_UDP_PACKET_SIZE];
     struct sockaddr_in from_addr;
     socklen_t from_addr_len = sizeof(from_addr);
-
+    printk("Entering loop");
     while (1) {
         memset(buffer, 0, MAX_UDP_PACKET_SIZE);
         ret = recvfrom(sock, buffer, MAX_UDP_PACKET_SIZE, 0, (struct sockaddr *) &from_addr, &from_addr_len);
         if (ret < 0) {
-            LOG_INF("Failed to receive UDP packet (%d)\n", ret);
+            printk("%d: Failed to receive UDP packet (%d)\n", port, ret);
             continue;
         }
 
         char from_ip[NET_IPV4_ADDR_LEN];
         net_addr_ntop(AF_INET, &from_addr.sin_addr, from_ip, sizeof(from_ip));
-        LOG_INF("Received UDP packet from %s:%d\n", from_ip, ntohs(from_addr.sin_port));
+        printk("Received UDP packet from %s:%d\n", from_ip, ntohs(from_addr.sin_port));
 
         LORA_PACKET_T lora_packet = {0};
         lora_packet.port = port;

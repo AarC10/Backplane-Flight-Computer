@@ -56,39 +56,45 @@ static void ina_task(void *p_id, void *unused1, void *unused2) {
     }
 }
 
-// static void adc_task(void *unused0, void *unused1, void *unused2) {
-//     uint16_t buff;
-//     
-//     struct adc_sequence adc_seq = {
-//         .buffer = &buff,
-//         .buffer_size = sizeof(buff)
-//     };
-//
-//     static const struct adc_channel_cfg vin_volt_sens_channel = ADC_CHANNEL_CFG_DT(adc1);
-//     // if (!adc_is_ready_dt()) {
-//     //     LOG_ERR("ADC device is not ready\n");
-//     //     return;
-//     // }
-//
-//     // if (!adc_channel_setup_dt()) {
-//     //     LOG_ERR("ADC channel setup failed\n");
-//     //     return;
-//     // }
-//
-//
-//     while (1) {
-//         int32_t tmp = 0;
-//         // if (!adc_read(, &adc_seq)) {
-//         //     LOG_ERR("ADC read failed\n");
-//         //     continue;
-//         // }
-//         //
-//         // if (adc_raw_to_millivolts_dt(, &tmp)) {
-//             power_module_data.vin_voltage_sense = tmp;
-//         k_msleep(1000);
-//         // }
-//     };
-// }
+static void adc_task(void *unused0, void *unused1, void *unused2) {
+    uint16_t buff;
+    
+    struct adc_sequence adc_seq = {
+        .buffer = &buff,
+        .buffer_size = sizeof(buff)
+    };
+
+    static const struct adc_channel_cfg vin_volt_sens_channel_cfg = ADC_CHANNEL_CFG_DT(DT_CHILD(DT_NODELABEL(adc1), channel_4));
+    static const struct adc_dt_spec vin_volt_sens = ADC_DT_SPEC_GET_BY_IDX(DT_PATH(zephyr_user), 0);
+
+    if (!adc_is_ready_dt(&vin_volt_sens)) {
+        LOG_ERR("ADC device is not ready\n");
+        return;
+    }
+
+    if (!adc_channel_setup_dt(&vin_volt_sens)) {
+        LOG_ERR("ADC channel setup failed\n");
+        return;
+    }
+
+
+    while (1) {
+        int32_t val_mv = 0;
+    
+        (void) adc_sequence_init_dt(&vin_volt_sens, &adc_seq);
+
+        int err = adc_read_dt(&vin_volt_sens, &adc_seq);
+		if (err < 0) {
+		    LOG_ERR("VIN VOLT SENS read failed: (%d)\n", err);
+			continue;
+		}
+
+        if (adc_raw_to_millivolts_dt(&vin_volt_sens, &val_mv)) {
+            power_module_data.vin_voltage_sense = val_mv;
+            k_msleep(1000);
+        }
+    };
+}
 
 void init_telem_tasks() { 
     for (int i = 0; i < 3; i++) {
@@ -111,7 +117,7 @@ void convert_and_send() {
     packet.current_3v3 = sensor_value_to_float(&power_module_data.ina_3v3.current);
     packet.voltage_3v3 = sensor_value_to_float(&power_module_data.ina_3v3.voltage);
     packet.power_3v3 = sensor_value_to_float(&power_module_data.ina_3v3.power);
-
+ 
     packet.current_5v0 = sensor_value_to_float(&power_module_data.ina_5v0.current);
     packet.voltage_5v0 = sensor_value_to_float(&power_module_data.ina_5v0.voltage);
     packet.power_5v0 = sensor_value_to_float(&power_module_data.ina_5v0.power);

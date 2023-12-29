@@ -72,12 +72,14 @@ static void adc_task(void *unused0, void *unused1, void *unused2) {
         return;
     }
 
+    power_module_data.vin_voltage_sense = 2;
     if (!adc_channel_setup_dt(&vin_volt_sens)) {
         LOG_ERR("ADC channel setup failed\n");
         return;
     }
 
 
+    power_module_data.vin_voltage_sense = 3;
     while (1) {
         int32_t val_mv = 0;
     
@@ -86,12 +88,15 @@ static void adc_task(void *unused0, void *unused1, void *unused2) {
         int err = adc_read_dt(&vin_volt_sens, &adc_seq);
 		if (err < 0) {
 		    LOG_ERR("VIN VOLT SENS read failed: (%d)\n", err);
+            power_module_data.vin_voltage_sense = -1;
 			continue;
 		}
 
         if (adc_raw_to_millivolts_dt(&vin_volt_sens, &val_mv)) {
-            power_module_data.vin_voltage_sense = val_mv;
+            power_module_data.vin_voltage_sense = 1; // TODO: Debug atm. Remember to fix this
             k_msleep(1000);
+        } else {
+            power_module_data.vin_voltage_sense = -2;
         }
     };
 }
@@ -104,11 +109,19 @@ void init_telem_tasks() {
 
         k_thread_start(&threads[i]);
     }
+
+
+    k_thread_create(&threads[3], &stacks[3][0], STACK_SIZE,
+                    adc_task, NULL, NULL, NULL,
+                    K_PRIO_PREEMPT(10), 0, K_NO_WAIT);
+
+    k_thread_start(&threads[3]);
+
+    
 }
 
 void convert_and_send() {
     static power_module_packet_t packet = {0};
-    static uint8_t flip_flop = 0;
 
     packet.current_battery =  sensor_value_to_float(&power_module_data.ina_battery.current);
     packet.voltage_battery = sensor_value_to_float(&power_module_data.ina_battery.voltage);
@@ -121,9 +134,8 @@ void convert_and_send() {
     packet.current_5v0 = sensor_value_to_float(&power_module_data.ina_5v0.current);
     packet.voltage_5v0 = sensor_value_to_float(&power_module_data.ina_5v0.voltage);
     packet.power_5v0 = sensor_value_to_float(&power_module_data.ina_5v0.power);
-    packet.vin_voltage_sense = flip_flop ? 0xDEAD : 0xBEEF;
-    flip_flop ^= 0b1; 
 
+    packet.vin_voltage_sense = power_module_data.vin_voltage_sense;
 
-    send_udp_broadcast((const uint8_t *) &packet, sizeof(power_module_packet_t), 9000);
+    send_udp_broadcast((const uint8_t *) &packet, sizeof(power_module_packet_t), 10000);
 }

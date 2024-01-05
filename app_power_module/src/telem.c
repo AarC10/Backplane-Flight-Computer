@@ -72,20 +72,20 @@ static void adc_task(void *unused0, void *unused1, void *unused2) {
         return;
     }
 
-    power_module_data.vin_voltage_sense = 2;
-    if (!adc_channel_setup_dt(&vin_volt_sens)) {
+    int err = !adc_channel_setup_dt(&vin_volt_sens);
+
+    if (err != 0) {
         LOG_ERR("ADC channel setup failed\n");
+        power_module_data.vin_voltage_sense = -err;
         return;
     }
 
-
-    power_module_data.vin_voltage_sense = 3;
     while (1) {
         int32_t val_mv = 0;
     
         (void) adc_sequence_init_dt(&vin_volt_sens, &adc_seq);
 
-        int err = adc_read_dt(&vin_volt_sens, &adc_seq);
+        err = adc_read_dt(&vin_volt_sens, &adc_seq);
 		if (err < 0) {
 		    LOG_ERR("VIN VOLT SENS read failed: (%d)\n", err);
             power_module_data.vin_voltage_sense = -1;

@@ -19,8 +19,9 @@
 		zephyr,console = &usart2;
 		zephyr,shell-uart = &usart2;
 		zephyr,sram = &sram0;
-		zephyr,flash = &w25q128jvsiq;
-        zephyr,flash-controller = &w25q128jvsiq;
+//		zephyr,flash = &w25q128jvsiq;
+		zephyr,flash = &flash0;
+//        zephyr,flash-controller = &w25q128jvsiq;
 		zephyr,canbus = &can2;
 	};
 
@@ -116,13 +117,22 @@
 	status = "okay";
 
     w25q128jvsiq: w25q128jvsiq@0 {
-		compatible = "jedec,spi-nor";
-        reg = <0x0>;
-        spi-max-frequency = <10000000>;
+        compatible = "jedec,spi-nor";
+		/* 134217728 bits = 16 Mbytes */
+		size = <0x8000000>;
+		reg = <0>;
+		spi-max-frequency = <10000000>;
+		jedec-id = [ef 40 18];
 		status = "okay";
 		
-        jedec-id = [ef 40 18];
-        size = <DT_SIZE_M(128)>;
+
+//        compatible = "jedec,spi-nor";
+//        reg = <0x0>;
+//        spi-max-frequency = <10000000>;spi-max-frequency = <40000000>;
+//		status = "okay";
+		
+//        jedec-id = [ef 40 18];
+//        size = <DT_SIZE_M(128)>;
 	};
 
     w5500: w5500@0 {

@@ -5,7 +5,7 @@
  */
 
 #include "telem.h"
-#include "net_utils.h"
+#include <launch/net_utils.h>
 
 #include <zephyr/fs/fs.h>
 #include <zephyr/fs/littlefs.h>

@@ -1,0 +1,8 @@
+# Copyright (c) 2024, Aaron Chan
+# SPDX-License-Identifier: Apache-2.0
+
+config LAUNCH_LIB
+	bool "Launch Library Support"
+	help
+	  This option enables launch library to support functionality across flight software
+

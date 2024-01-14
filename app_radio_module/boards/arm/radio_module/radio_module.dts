@@ -19,9 +19,33 @@
 		zephyr,shell-uart = &uart4;
 		zephyr,sram = &sram0;
 		zephyr,flash = &flash0;
+		
+        storage = &w25q128;
+		logfs = &lfs1;
 	};
+    
+    fstab {
+		compatible = "zephyr,fstab";
+		lfs1: lfs1 {
+			// most of this is taken from the defaults in this compatible's
+			// binding
+			compatible = "zephyr,fstab,littlefs";
+			mount-point = "/lfs";
+			partition = <&external_storage_partition>;
+			automount;
+			// automount causes trouble when we want to do things on startup,
+			// leaving it off for now
 
-	leds: leds {
+			read-size = <16>;
+			prog-size = <16>;
+			cache-size = <64>;
+			lookahead-size = <32>;
+			block-cycles = <(90 * 1000)>; 
+			// the datasheet gives 100K P-E cycles, I stay slightly under that
+		};
+	};
+	
+    leds: leds {
 		compatible = "gpio-leds";
 		red_led_1: led_1 {
 			gpios = <&gpioc 6 GPIO_ACTIVE_HIGH>;
@@ -116,6 +140,7 @@
 &spi2 {
     pinctrl-0 = <&spi2_sck_pb13 &spi2_miso_pb14 &spi2_mosi_pb15>;
     cs-gpios = <&gpioa 8 GPIO_ACTIVE_LOW
+                &gpioc 8 GPIO_ACTIVE_LOW    
                     >;
 	pinctrl-names = "default";
 	status = "okay";
@@ -134,13 +159,33 @@
     		power-amplifier-output = "pa-boost";
     		spi-max-frequency = <125000>;
             status = "okay";
+        };
 
-        storage: w25q128@0 {
-            compatible = "jedec,spi-nor";
+    	w25q128: w25q128jv@1 {
+		    compatible = "jedec,spi-nor"; // conforms to JEDEC SFDP
+	    	reg = <1>; // connected to to connector 1
 
-        }
-	
-    };
+    		spi-max-frequency = <(10 * 1000 * 1000)>; // fR = 50 MHz (Table 9.6, p.65)
+    		size = <DT_SIZE_M(128)>; // w25q128 - 128 MBit (S 11, p.75) 
+	    	jedec-id = [ef 40 18]; // 0xef4018 (Table 8.1.1, p.22)
+
+    		has-dpd;
+    		// described as Power-down 0xB9 (S 8.2.21)
+		    t-enter-dpd = <(3 * 1000)>; // tDP = 3 us (Table 9.6, p.66)
+	    	// described as Release Power-own 0xAB (S 8.2.22)
+    		t-exit-dpd = <(3 * 1000)>; // tRES1 = 3 us (Table 9.6, p.66)
+
+    		partitions {
+		    	compatible = "fixed-partitions";
+	    		#address-cells = <1>;
+    			#size-cells = <1>;
+
+		    	external_storage_partition: partition@0 {
+	    			label = "w25q-storage";
+    				reg = <0 DT_SIZE_M(128)>;
+			    };
+		    };
+	    };
 };
 
 &rtc {

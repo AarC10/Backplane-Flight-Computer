@@ -30,6 +30,53 @@ LOG_MODULE_REGISTER(main, CONFIG_APP_LOG_LEVEL);
 K_QUEUE_DEFINE(lora_tx_queue);
 K_QUEUE_DEFINE(net_tx_queue);
 
+static int32_t increment_file_int32(char* fname, int32_t* count) {
+	int32_t ret;
+	int32_t close_ret;
+	struct fs_file_t file;
+
+
+	// prepare file for usage
+	fs_file_t_init(&file);
+	ret = fs_open(&file, fname, FS_O_CREATE | FS_O_RDWR);
+	if (ret < 0) {
+		LOG_PRINTK("Failed to open %s: %d\n", fname, ret);
+		return ret;
+	}
+
+	// get the counter from the file
+	ret = fs_read(&file, count, sizeof(*count));
+	if (ret < 0) {
+		LOG_PRINTK("Failed to read counter: %d\n", ret);
+		goto exit;
+	}
+	LOG_PRINTK("Read counter: %d\n", *count);
+
+	(*count)++;
+
+	// go back to the start of the file
+	ret = fs_seek(&file, 0, FS_SEEK_SET);
+	if (ret < 0) {
+		LOG_PRINTK("Failed to seek to start: %d\n", ret);
+		goto exit;
+	}
+
+	// write the counter to the file
+	ret = fs_write(&file, count, sizeof(*count));
+	if (ret < 0) {
+		LOG_PRINTK("Failed to write new count: %d\n", ret);
+	}
+	
+exit:
+	close_ret = fs_close(&file);
+	if (close_ret < 0) {
+		LOG_PRINTK("Failed to close %s: %d\n", fname, close_ret);
+		return close_ret;
+	}
+	return ret;
+}
+
+
 
 static void init() {
     if (!init_sx1276(lora_dev)) {
@@ -44,6 +91,15 @@ static void init() {
     if (!init_eth_iface()) {
         init_net_stack();
     }
+
+
+    int boot_counter = -1;
+	int ret = increment_file_int32("/lfs/boot_count", &boot_counter);
+	if (ret >= 0) {
+		LOG_PRINTK("Successfully read and updated boot counter: %d boots\n", boot_counter);
+	} else {
+		LOG_PRINTK("Failed to read file\n");
+	}
 }
 
 static void initialize_fake_sensor_data(FAKE_SENSOR_DATA_T *data) {
